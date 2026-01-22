@@ -1,6 +1,38 @@
 import TelegramBot from "node-telegram-bot-api";
 import { BOT_TOKEN, WEBAPP_URL } from "./config.js";
+import fetch from "node-fetch";
 
+bot.on("message", async (msg) => {
+  const chatId = msg.chat.id;
+  const userId = msg.from.id;
+  const text = msg.text;
+
+  if (!text || text.length < 50) return; // ignore normal chats
+
+  try {
+    const res = await fetch("https://YOUR-RENDER-BACKEND.onrender.com/api/deposit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ telegramId: userId.toString(), text })
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      bot.sendMessage(chatId,
+        `✅ Deposit successful!\n\n` +
+        `Provider: ${data.provider}\n` +
+        `Amount: ${data.amount} ETB\n` +
+        `New balance: ${data.newBalance} ETB`
+      );
+    } else {
+      bot.sendMessage(chatId, `❌ ${data.error}`);
+    }
+
+  } catch (e) {
+    bot.sendMessage(chatId, "❌ Deposit verification failed. Try again.");
+  }
+});
 const bot = new TelegramBot(BOT_TOKEN, { polling: true });
 
 // START COMMAND
